@@ -1,0 +1,60 @@
+name: SAST Security Scan
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  bandit-sast:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install Bandit
+        run: python -m pip install bandit==1.9.4
+
+      - name: Generate Bandit report
+        run: |
+          bandit -r . -f txt -o bandit-report.txt || true
+          cat bandit-report.txt
+
+      - name: Enforce SAST security gate
+        shell: bash
+        run: |
+          set +e
+
+          bandit -r . --severity-level high
+          high_severity=$?
+
+          bandit -r . --confidence-level high
+          high_confidence=$?
+
+          set -e
+
+          if [ "$high_severity" -ne 0 ] || [ "$high_confidence" -ne 0 ]; then
+            echo "SAST gate failed: High-severity or High-confidence finding detected."
+            exit 1
+          fi
+
+          echo "SAST gate passed."
+
+      - name: Upload Bandit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bandit-report
+          path: bandit-report.txt
