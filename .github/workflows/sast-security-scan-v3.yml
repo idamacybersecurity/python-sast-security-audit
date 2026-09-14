@@ -1,0 +1,122 @@
+name: Phase 3 - Deep SAST and SCA
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      # -------------------------------------------------
+      # Install security scanning tools
+      # -------------------------------------------------
+
+      - name: Install security tools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "bandit[sarif]==1.9.4"
+          python -m pip install semgrep
+          python -m pip install pip-audit
+
+      # -------------------------------------------------
+      # BANDIT SAST + SARIF
+      # -------------------------------------------------
+
+      - name: Run Bandit SAST (SARIF Output)
+        run: |
+          bandit -r . -f sarif -o bandit-results.sarif || true
+
+      - name: Upload Bandit SARIF to GitHub Security
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: bandit-results.sarif
+          category: bandit
+
+      # -------------------------------------------------
+      # BANDIT HARD SECURITY GATE
+      # -------------------------------------------------
+
+      - name: Enforce Bandit SAST security gate
+        shell: bash
+        run: |
+          set +e
+
+          bandit -r . --severity-level high
+          high_severity=$?
+
+          bandit -r . --confidence-level high
+          high_confidence=$?
+
+          set -e
+
+          if [ "$high_severity" -ne 0 ] || [ "$high_confidence" -ne 0 ]; then
+            echo "SAST gate failed: High-severity or High-confidence Bandit finding detected."
+            exit 1
+          fi
+
+          echo "Bandit SAST gate passed."
+
+      # -------------------------------------------------
+      # SEMGREP DEEP SAST + SARIF
+      # -------------------------------------------------
+
+      - name: Run Semgrep Deep SAST
+        run: |
+          semgrep scan \
+            --config p/python \
+            --config p/owasp-top-ten \
+            --sarif \
+            --output semgrep-results.sarif \
+            . || true
+
+      - name: Upload Semgrep SARIF to GitHub Security
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: semgrep-results.sarif
+          category: semgrep
+
+      # -------------------------------------------------
+      # SOFTWARE COMPOSITION ANALYSIS - PIP-AUDIT
+      # -------------------------------------------------
+
+      - name: Generate dependency vulnerability report
+        run: |
+          pip-audit -r requirements.txt -f json -o pip-audit-results.json || true
+
+      - name: Enforce dependency security gate
+        run: |
+          pip-audit -r requirements.txt
+
+      # -------------------------------------------------
+      # UPLOAD REPORTS AS WORKFLOW ARTIFACTS
+      # -------------------------------------------------
+
+      - name: Upload security scan reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase3-security-reports
+          path: |
+            bandit-results.sarif
+            semgrep-results.sarif
+            pip-audit-results.json
