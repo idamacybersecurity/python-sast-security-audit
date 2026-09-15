@@ -26,7 +26,7 @@ jobs:
           python-version: "3.14"
 
       # -------------------------------------------------
-      # Install security scanning tools
+      # INSTALL SECURITY TOOLS
       # -------------------------------------------------
 
       - name: Install security tools
@@ -40,7 +40,7 @@ jobs:
       # BANDIT SAST + SARIF
       # -------------------------------------------------
 
-      - name: Run Bandit SAST (SARIF Output)
+      - name: Run Bandit SAST and generate SARIF
         run: |
           bandit -r . -f sarif -o bandit-results.sarif || true
 
@@ -51,11 +51,7 @@ jobs:
           sarif_file: bandit-results.sarif
           category: bandit
 
-      # -------------------------------------------------
-      # BANDIT HARD SECURITY GATE
-      # -------------------------------------------------
-
-      - name: Enforce Bandit SAST security gate
+      - name: Enforce Bandit security gate
         shell: bash
         run: |
           set +e
@@ -69,7 +65,7 @@ jobs:
           set -e
 
           if [ "$high_severity" -ne 0 ] || [ "$high_confidence" -ne 0 ]; then
-            echo "SAST gate failed: High-severity or High-confidence Bandit finding detected."
+            echo "Bandit gate failed: High-severity or High-confidence finding detected."
             exit 1
           fi
 
@@ -96,10 +92,10 @@ jobs:
           category: semgrep
 
       # -------------------------------------------------
-      # SOFTWARE COMPOSITION ANALYSIS - PIP-AUDIT
+      # SOFTWARE COMPOSITION ANALYSIS
       # -------------------------------------------------
 
-      - name: Generate dependency vulnerability report
+      - name: Generate pip-audit dependency report
         run: |
           pip-audit -r requirements.txt -f json -o pip-audit-results.json || true
 
@@ -108,7 +104,7 @@ jobs:
           pip-audit -r requirements.txt
 
       # -------------------------------------------------
-      # UPLOAD REPORTS AS WORKFLOW ARTIFACTS
+      # UPLOAD SECURITY REPORTS
       # -------------------------------------------------
 
       - name: Upload security scan reports
