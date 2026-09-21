@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+
   pull_request:
     branches:
       - main
@@ -44,11 +45,17 @@ jobs:
 
       # -------------------------------------------------
       # BANDIT SAST + SARIF
+      # Exclude the intentional Semgrep policy test file
+      # from Bandit because it contains deliberately
+      # insecure code used to validate custom rules.
       # -------------------------------------------------
 
       - name: Run Bandit SAST (SARIF Output)
         run: |
-          bandit -r . -f sarif -o bandit-results.sarif || true
+          bandit -r . \
+            --exclude ./semgrep-policy-test.py \
+            -f sarif \
+            -o bandit-results.sarif || true
 
       - name: Upload Bandit SARIF to GitHub Security
         if: always()
@@ -66,10 +73,14 @@ jobs:
         run: |
           set +e
 
-          bandit -r . --severity-level high
+          bandit -r . \
+            --exclude ./semgrep-policy-test.py \
+            --severity-level high
           high_severity=$?
 
-          bandit -r . --confidence-level high
+          bandit -r . \
+            --exclude ./semgrep-policy-test.py \
+            --confidence-level high
           high_confidence=$?
 
           set -e
