@@ -1,0 +1,41 @@
+rules:
+  # -------------------------------------------------
+  # BINCOM CUSTOM PYTHON SECURITY POLICIES
+  # -------------------------------------------------
+
+  - id: bincom-no-eval
+    languages:
+      - python
+    severity: ERROR
+    message: "Bincom Security Policy: eval() is prohibited because it can execute untrusted code."
+    pattern: eval(...)
+
+  - id: bincom-no-exec
+    languages:
+      - python
+    severity: ERROR
+    message: "Bincom Security Policy: exec() is prohibited because it can execute arbitrary code."
+    pattern: exec(...)
+
+  - id: bincom-no-credential-logging
+    languages:
+      - python
+    severity: ERROR
+    message: "Bincom Security Policy: Do not expose passwords, tokens, API keys, or secrets in application logs."
+    patterns:
+      - pattern: logging.$LEVEL($MESSAGE)
+      - metavariable-regex:
+          metavariable: $MESSAGE
+          regex: '(?i).*(password|passwd|token|api[_ -]?key|secret|credential).*'
+
+  - id: bincom-use-secrets-not-random
+    languages:
+      - python
+    severity: WARNING
+    message: "Bincom Security Policy: Use the secrets module instead of random for security-sensitive random values."
+    pattern-either:
+      - pattern: random.choice(...)
+      - pattern: random.choices(...)
+      - pattern: random.randint(...)
+      - pattern: random.randrange(...)
+      - pattern: random.random(...)

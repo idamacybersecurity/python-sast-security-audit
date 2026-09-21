@@ -1,9 +1,10 @@
-name: Phase 3 - Deep SAST and SCA
+name: Phase 4 - Supply Chain Hardened SAST and SCA
 
 on:
   push:
     branches:
       - main
+
   pull_request:
     branches:
       - main
@@ -17,6 +18,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # -------------------------------------------------
+      # SUPPLY CHAIN HARDENED ACTIONS
+      # All third-party actions are pinned to immutable
+      # 40-character commit SHAs.
+      # -------------------------------------------------
+
       - name: Checkout repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
@@ -26,7 +33,7 @@ jobs:
           python-version: "3.14"
 
       # -------------------------------------------------
-      # Install security scanning tools
+      # INSTALL SECURITY SCANNING TOOLS
       # -------------------------------------------------
 
       - name: Install security tools
@@ -38,11 +45,17 @@ jobs:
 
       # -------------------------------------------------
       # BANDIT SAST + SARIF
+      # Exclude the intentional Semgrep policy test file
+      # from Bandit because it contains deliberately
+      # insecure code used to validate custom rules.
       # -------------------------------------------------
 
       - name: Run Bandit SAST (SARIF Output)
         run: |
-          bandit -r . -f sarif -o bandit-results.sarif || true
+          bandit -r . \
+            --exclude ./semgrep-policy-test.py \
+            -f sarif \
+            -o bandit-results.sarif || true
 
       - name: Upload Bandit SARIF to GitHub Security
         if: always()
@@ -60,10 +73,14 @@ jobs:
         run: |
           set +e
 
-          bandit -r . --severity-level high
+          bandit -r . \
+            --exclude ./semgrep-policy-test.py \
+            --severity-level high
           high_severity=$?
 
-          bandit -r . --confidence-level high
+          bandit -r . \
+            --exclude ./semgrep-policy-test.py \
+            --confidence-level high
           high_confidence=$?
 
           set -e
@@ -76,7 +93,7 @@ jobs:
           echo "Bandit SAST gate passed."
 
       # -------------------------------------------------
-      # SEMGREP DEEP SAST + SARIF
+      # SEMGREP DEEP SAST + CUSTOM ENTERPRISE POLICY
       # -------------------------------------------------
 
       - name: Run Semgrep Deep SAST
@@ -84,6 +101,7 @@ jobs:
           semgrep scan \
             --config p/python \
             --config p/owasp-top-ten \
+            --config .semgrep/custom-python-rules.yml \
             --sarif \
             --output semgrep-results.sarif \
             . || true
@@ -115,7 +133,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: phase3-security-reports
+          name: phase4-security-reports
           path: |
             bandit-results.sarif
             semgrep-results.sarif
