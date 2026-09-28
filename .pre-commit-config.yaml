@@ -1,0 +1,28 @@
+repos:
+  # -------------------------------------------------
+  # BANDIT SECURITY SCAN
+  # -------------------------------------------------
+  - repo: local
+    hooks:
+      - id: bandit-security-scan
+        name: Bandit Security Scan
+        entry: python -m bandit
+        language: system
+        types: [python]
+        args:
+          - "-r"
+          - "."
+          - "--severity-level"
+          - "high"
+        pass_filenames: false
+
+  # ==========================================
+  # SEMGREP CUSTOM SECURITY POLICY
+  # ==========================================
+  - repo: https://github.com/semgrep/semgrep
+    rev: v1.137.0
+    hooks:
+      - id: semgrep
+        name: Semgrep Custom Security Policy
+        args:
+          - "--config=.semgrep/custom-python-rules.yml"
