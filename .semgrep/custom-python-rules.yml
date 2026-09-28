@@ -1,6 +1,7 @@
 rules:
   # -------------------------------------------------
   # BINCOM CUSTOM PYTHON SECURITY POLICIES
+  # PHASE 4 RULES
   # -------------------------------------------------
 
   - id: bincom-no-eval
@@ -39,3 +40,40 @@ rules:
       - pattern: random.randint(...)
       - pattern: random.randrange(...)
       - pattern: random.random(...)
+
+  # -------------------------------------------------
+  # PHASE 5 - WEB/API FRAMEWORK SECURITY POLICIES
+  # -------------------------------------------------
+
+  - id: bincom-flask-debug-enabled
+    languages:
+      - python
+    severity: ERROR
+    message: "Bincom Security Policy: Flask debug mode must not be enabled in production."
+    pattern: $APP.run(..., debug=True, ...)
+
+  - id: bincom-flask-cors-wildcard
+    languages:
+      - python
+    severity: ERROR
+    message: "Bincom Security Policy: Wildcard CORS origins are prohibited. Restrict access to trusted origins."
+    pattern: CORS(..., origins="*", ...)
+
+  - id: bincom-csrf-disabled
+    languages:
+      - python
+    severity: ERROR
+    message: "Bincom Security Policy: CSRF protection must not be disabled."
+    pattern-either:
+      - pattern: $APP.config["WTF_CSRF_ENABLED"] = False
+      - pattern: $APP.config['WTF_CSRF_ENABLED'] = False
+
+  - id: bincom-raw-sql-string-format
+    languages:
+      - python
+    severity: ERROR
+    message: "Bincom Security Policy: Do not construct SQL queries using string formatting. Use parameterized queries."
+    pattern-either:
+      - pattern: $CURSOR.execute($QUERY % $VALUE)
+      - pattern: $CURSOR.execute($QUERY.format(...))
+      - pattern: $CURSOR.execute(f"...")

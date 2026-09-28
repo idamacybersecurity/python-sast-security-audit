@@ -1,0 +1,15 @@
+version: 2
+
+updates:
+  # Keep GitHub Actions dependencies updated.
+  # Dependabot will propose updates while preserving SHA pinning.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  # Keep Python dependencies updated.
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"

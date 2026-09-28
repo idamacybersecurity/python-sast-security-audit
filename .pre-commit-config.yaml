@@ -16,9 +16,9 @@ repos:
           - "high"
         pass_filenames: false
 
-  # ==========================================
+  # -------------------------------------------------
   # SEMGREP CUSTOM SECURITY POLICY
-  # ==========================================
+  # -------------------------------------------------
   - repo: https://github.com/semgrep/semgrep
     rev: v1.137.0
     hooks:
@@ -26,3 +26,15 @@ repos:
         name: Semgrep Custom Security Policy
         args:
           - "--config=.semgrep/custom-python-rules.yml"
+
+  # -------------------------------------------------
+  # PHASE 5 - PRE-COMMIT SECRET SCANNING
+  # -------------------------------------------------
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        name: Detect Secrets
+        args:
+          - "--baseline"
+          - ".secrets.baseline"
